@@ -1,0 +1,4 @@
+**/__pycache__/
+node_modules/
+extension.log
+scanned.json

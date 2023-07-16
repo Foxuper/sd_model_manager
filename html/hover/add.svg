@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+	<filter id='shadow' color-interpolation-filters="sRGB">
+		<feDropShadow flood-color="black" dx="0" dy="0" flood-opacity="0.9" stdDeviation="0.5"/>
+		<feDropShadow flood-color="black" dx="0" dy="0" flood-opacity="0.9" stdDeviation="0.5"/>
+	</filter>
+
+	<g filter="url(#shadow)" fill="none" stroke="#FFE396" stroke-linecap="round" stroke-linejoin="round" stroke-width="2">
+		<circle cx="12" cy="12" r="10"></circle>
+		<line x1="12" y1="8" x2="12" y2="16"></line>
+		<line x1="8" y1="12" x2="16" y2="12"></line>
+	</g>
+</svg>

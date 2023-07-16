@@ -1,0 +1,1 @@
+''' Library code for the Stable Diffusion Resource Manager Extension '''

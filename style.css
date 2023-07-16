@@ -1,0 +1,166 @@
+/* Thumbnail Mode | Resource icon on thumbnail previews */
+.extra-network-thumbs >.card ul a.resource
+{
+	right: 0;
+	left: unset;
+	background-image: url('./html/resource.svg');
+}
+
+/* Thumbnail Mode | Flex row for the card actions */
+.extra-network-thumbs > .card .additional
+{
+	display: flex;
+	flex-direction: row;
+}
+
+/* Thumbnail Mode | Center metadata button */
+.extra-network-thumbs > .card > .metadata-button
+{
+	top: 0;
+	left: unset;
+	right: calc(50% - 0.5em);
+}
+
+/* Thumbnail Mode | Coloring of the replace preview icon on hover */
+.extra-network-thumbs > .card ul a:hover
+{ background-image: url('./html/hover/image-update.svg'); }
+
+/* Thumbnail Mode | Coloring of the resource icon on hover */
+.extra-network-thumbs > .card ul a.resource:hover
+{ background-image: url('./html/hover/resource.svg'); }
+
+/* Card Mode | Coloring of the card actions */
+.extra-network-cards > .card ul a:hover
+{ color: #FFE396; }
+
+/* Coloring of the metadata button on hover */
+.extra-network-thumbs > .card > .metadata-button:hover,
+.extra-network-cards > .card > .metadata-button:hover
+{ color: #FFE396; }
+
+/* Gradio box with padding */
+.block.gradio-box.sd-mm-padded-box
+{ padding: 1rem !important; }
+
+/* Gradio column with fitted width */
+.gradio-column.sd-mm-fitted-column
+{
+	margin-top: auto;
+	flex-grow: 0 !important;
+	min-width: fit-content !important;
+}
+
+/* Model image gallery container */
+.sd-mm-gallery-html > .sd-mm-gallery
+{
+	gap: 1em;
+	display: flex;
+	flex-wrap: wrap;
+	margin-left: 1.5em;
+	margin-right: 1.5em;
+	justify-content: center;
+}
+
+/* Action row for the model image gallery */
+.sd-mm-gallery > .sd-mm-actions
+{
+	top: 0;
+	right: 0;
+	gap: 0.3em;
+	display: flex;
+	position: absolute;
+	flex-direction: column;
+}
+
+/* Model image container */
+.sd-mm-gallery > .sd-mm-image
+{
+	width: 14em;
+	height: 14em;
+	border-radius: 0.5em;
+	position: relative;
+	background: #1A1A1A;
+	border: 0.1em solid #404040;
+}
+
+/* Model image */
+.sd-mm-gallery > .sd-mm-image > img
+{
+	width: 100%;
+	height: 100%;
+	border-radius: 0.5em;
+	cursor: zoom-in;
+	object-fit: contain;
+	object-position: center;
+}
+
+/* Model image action row */
+.sd-mm-gallery > .sd-mm-image > .sd-mm-actions
+{
+	gap: 0.3em;
+	top: 0.3em;
+	right: 0.3em;
+	display: flex;
+	position: absolute;
+	flex-direction: row;
+}
+
+/* Model image action */
+.sd-mm-gallery .sd-mm-actions > .sd-mm-action
+{
+	width: 1.2em;
+	height: 1.2em;
+	cursor: pointer;
+}
+
+/* Icon for the currently selected model image */
+.sd-mm-gallery .sd-mm-actions > .sd-mm-preview
+{
+	cursor: default;
+	background-image: url('./html/star-full.svg');
+}
+
+/* Icons for model image actions */
+.sd-mm-gallery .sd-mm-actions > .sd-mm-send-to
+{ background-image: url('./html/send-to.svg'); }
+.sd-mm-gallery .sd-mm-actions > .sd-mm-star
+{ background-image: url('./html/star.svg'); }
+.sd-mm-gallery .sd-mm-actions > .sd-mm-delete
+{ background-image: url('./html/delete.svg'); }
+.sd-mm-gallery .sd-mm-actions > .sd-mm-add
+{ background-image: url('./html/add.svg'); }
+
+/* Coloring of model image actions on hover */
+.sd-mm-gallery .sd-mm-actions > .sd-mm-send-to:hover
+{ background-image: url('./html/hover/send-to.svg'); }
+.sd-mm-gallery .sd-mm-actions > .sd-mm-star:hover
+{ background-image: url('./html/hover/star.svg'); }
+.sd-mm-gallery .sd-mm-actions > .sd-mm-delete:hover
+{ background-image: url('./html/hover/delete.svg'); }
+.sd-mm-gallery .sd-mm-actions > .sd-mm-add:hover
+{ background-image: url('./html/hover/add.svg'); }
+
+/* Full screen overlay for zoomed in image */
+#sd-mm-full-screen-overlay
+{
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+	z-index: 999;
+	display: flex;
+	position: fixed;
+	cursor: zoom-out;
+	align-items: center;
+	justify-content: center;
+	background-color: #000000D9;
+}
+
+/* Full screen image */
+#sd-mm-full-screen-overlay > img
+{
+	width: 90%;
+	height: 90%;
+	object-fit: contain;
+	object-position: center;
+}

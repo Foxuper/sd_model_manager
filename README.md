@@ -1,0 +1,1 @@
+# Model Manager Extension (A1111 SD WebUI)

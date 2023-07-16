@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+	<filter id='shadow' color-interpolation-filters="sRGB">
+		<feDropShadow flood-color="black" dx="0" dy="0" flood-opacity="0.9" stdDeviation="0.5"/>
+		<feDropShadow flood-color="black" dx="0" dy="0" flood-opacity="0.9" stdDeviation="0.5"/>
+	</filter>
+
+	<path filter="url(#shadow)" fill="none" stroke="#FFE396" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+		d="M18 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8c0-1.1.9-2 2-2h5M15 3h6v6M10 14L20.2 3.8"/>
+</svg>

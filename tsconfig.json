@@ -1,0 +1,12 @@
+{
+	"include":
+	[
+		"./typescript"
+	],
+	"compilerOptions":
+	{
+		"target": "ESNext",
+		"module": "CommonJS",
+		"outDir": "./javascript"
+	}
+}
