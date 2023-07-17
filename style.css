@@ -23,6 +23,13 @@
 	width: fit-content;
 }
 
+/* Thumbnail Mode | Bigger and rectangular thumbnails */
+.extra-network-thumbs > .card
+{
+	width: 7em;
+	height: 10em;
+}
+
 /* Card Mode | Force display of the card actions */
 .extra-network-cards > .card .additional
 { display: block !important; }
@@ -207,7 +214,7 @@
 	gap: 0.5em;
 	width: 60%;
 	padding: 1em;
-	font-size: 9pt;
+	font-size: 10pt;
 	max-height: 90%;
 	border-radius: 1em;
 	display: flex;

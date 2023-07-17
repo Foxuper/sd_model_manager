@@ -222,7 +222,7 @@ def run_filter_table(model: local.Model, filter= '', mode: Literal['and', 'or']=
 		table = [[''] * len(local.Model.table_header())]
 
 	# Get filename, model and status
-	filename = Filename(table[0][0] if len(table) == 1 else '')
+	filename = Filename(table[0][0] if len(table) == 1 and len(filter) > 0 else '')
 	model = local.Model.get(model.type, filename)
 	status = get_component_status(model)
 

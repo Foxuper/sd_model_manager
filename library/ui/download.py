@@ -1,5 +1,8 @@
 import gradio as gr
 
+# SD Webui Modules
+from modules import ui
+
 # Extension Library
 from library import paths
 from library import local
@@ -23,12 +26,19 @@ def run_search_model(url_or_id: str):
 		type = ''
 		versions = ['']
 
+	# Simulate version and file selection to extract download button state
+	select_version = run_select_version(model, versions[0])
+	select_file = run_select_file(select_version[0], select_version[1]['value'])
+
 	return \
 	(
 		model,
 		gr.update(value= name),
 		gr.update(value= type),
-		gr.update(choices= versions, value= versions[0])
+		gr.update(choices= versions, value= versions[0]),
+
+		# Download button
+		select_file[3],
 	)
 
 def run_select_version(model: civitai.Model | None, full_name: str):
@@ -86,12 +96,16 @@ def run_download_file(model: civitai.Model, file: civitai.File):
 	# Handle the download
 	if filename is not None:
 		downloaded_model = local.Model.get(model.type, filename)
-		downloaded_model.handle_download(model.type, filename)
+		download = downloaded_model.handle_download(model.type, filename)
+
+		# Make filenme None if download failed
+		if download is None:
+			filename = None
 
 	# Download button
 	return gr.update(
 		variant= 'primary' if filename is None else 'secondary',
-		value= download_message(file is not None),
+		value= download_message(filename is not None),
 		interactive= filename is None
 	)
 
@@ -112,6 +126,8 @@ def component():
 				url_or_id = gr.Textbox(label= 'Model URL / ID', placeholder= 'https://civitai.com/models/...')
 				with gr.Column(elem_classes= 'sd-mm-fitted-column'):
 					search = gr.Button('Search', variant= 'primary')
+				with gr.Column(elem_classes= 'sd-mm-fitted-column'):
+					refresh = gr.Button(ui.refresh_symbol, elem_id= 'sd-mm-refresh-button')
 
 			# Name, Type and Version
 			with gr.Row():
@@ -132,7 +148,8 @@ def component():
 			download = gr.Button('Download', variant= 'primary', visible= False, elem_id= 'sd-mm-download-model')
 
 	# Events
-	search.click(run_search_model, [url_or_id], [model_state, name, type, version])
+	search.click(run_search_model, [url_or_id], [model_state, name, type, version, download])
+	refresh.click(run_select_file, [version_state, file], [file_state, file_type, file_size, download])
 	version.change(run_select_version, [model_state, version], [version_state, file])
 	file.change(run_select_file, [version_state, file], [file_state, file_type, file_size, download])
 	download.click(run_download_file, [model_state, file_state], [download])

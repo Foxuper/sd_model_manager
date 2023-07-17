@@ -61,7 +61,7 @@ function handleHomeDownloadButton() {
         const interval = setInterval(() => {
             if (download_button.innerText != 'Download') {
                 main_refresh_button.click();
-                refresh_button.click();
+                setTimeout(() => refresh_button.click(), 500);
                 clearInterval(interval);
             }
         }, 100);

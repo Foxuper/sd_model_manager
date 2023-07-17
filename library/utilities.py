@@ -95,7 +95,7 @@ class Filename:
 	def get_index(self, separator= '.'):
 		''' Returns the index component of the filename if it exists '''
 
-		search = re.search(rf'\{separator}(\d+)$', self.name)
+		search = re.search(rf'{re.escape(separator)}(\d+)$', self.name)
 		return int(search.group(1)) if search is not None else None
 
 	def find_nonexistent(self, directory: Path, separator= '.'):
@@ -272,7 +272,7 @@ def progress_bar(label: str, speed: str, progress: Optional[float]= None, length
 	sys.stdout.write('    \r')
 	sys.stdout.flush()
 
-def download_file(url: str, directory: Path, filename: Filename, chunk_count= 100):
+def download_file(url: str, directory: Path, filename: Filename):
 	'''
 		Downloads a file from a URL
 		- The header file extension is used over the provided filename extension
@@ -323,21 +323,15 @@ def download_file(url: str, directory: Path, filename: Filename, chunk_count= 10
 	LOGGER.debug(f'Download file name: {filename.full}')
 	file = directory / filename.full
 
-	# Generate power of 2 chunk size
-	chunk_size = file_size // chunk_count if file_size is not None else 1 << 10
-	chunk_size = 2 ** (chunk_size >> 1).bit_length()
-	LOGGER.debug(f'Download chunk size: {chunk_size / 1024} KB')
-
 	# Download file
 	try:
 		downloaded_size = 0
 		download_start = time.perf_counter()
 
 		with file.open('wb') as f:
-			for chunk in response.iter_content(chunk_size):
+			for chunk in response.iter_content(1024 * 1024):
 				downloaded_size += len(chunk)
 				f.write(chunk)
-				f.flush()
 
 				# Calculate time difference
 				current_time = time.perf_counter()
