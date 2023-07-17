@@ -5,8 +5,8 @@
 	</filter>
 
 	<g transform="translate(-17, -17)" filter="url(#shadow)" fill="#FFFFFF">
-		<path  d="M 22,48L 22,30L 37,39L 37,56.5L 22,48 Z "/>
-		<path  d="M 54,30L 54,48L 39,56.5L 39,39L 54,30 Z "/>
-		<path  d="M 38,19L 53.25,28L 38,37L 22.75,28L 38,19 Z "/>
+		<path d="M 22,48L 22,30L 37,39L 37,56.5L 22,48 Z "/>
+		<path d="M 54,30L 54,48L 39,56.5L 39,39L 54,30 Z "/>
+		<path d="M 38,19L 53.25,28L 38,37L 22.75,28L 38,19 Z "/>
 	</g>
 </svg>

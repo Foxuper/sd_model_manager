@@ -1,5 +1,5 @@
 /* Thumbnail Mode | Resource icon on thumbnail previews */
-.extra-network-thumbs >.card ul a.resource
+.extra-network-thumbs > .card ul a.resource
 {
 	right: 0;
 	left: unset;
@@ -17,21 +17,53 @@
 .extra-network-thumbs > .card > .metadata-button
 {
 	top: 0;
-	left: unset;
-	right: calc(50% - 0.5em);
+	left: 0;
+	line-height: 25px;
+	margin: auto;
+	width: fit-content;
 }
 
-/* Thumbnail Mode | Coloring of the replace preview icon on hover */
-.extra-network-thumbs > .card ul a:hover
-{ background-image: url('./html/hover/image-update.svg'); }
+/* Card Mode | Force display of the card actions */
+.extra-network-cards > .card .additional
+{ display: block !important; }
 
-/* Thumbnail Mode | Coloring of the resource icon on hover */
-.extra-network-thumbs > .card ul a.resource:hover
-{ background-image: url('./html/hover/resource.svg'); }
+/* Card Mode | Flex row for the card actions */
+.extra-network-cards .actions .additional ul
+{
+	gap: 0.5em;
+	display: flex;
+	flex-direction: row;
+}
+
+/* Card Mode | Use icons for the card actions */
+.extra-network-cards .actions .additional a
+{
+	background-image: url('./html/image-update.svg');
+	background-repeat: no-repeat;
+	background-position: center;
+	background-size: cover;
+	display: block;
+	width: 28px;
+	height: 28px;
+}
+
+/* Card Mode | Resource icon on card previews */
+.extra-network-cards > .card ul a.resource
+{ background-image: url('./html/resource.svg'); }
 
 /* Card Mode | Coloring of the card actions */
 .extra-network-cards > .card ul a:hover
 { color: #FFE396; }
+
+/* Coloring of the replace preview icon on hover */
+.extra-network-thumbs > .card ul a:hover,
+.extra-network-cards .actions .additional a:hover
+{ background-image: url('./html/hover/image-update.svg'); }
+
+/* Coloring of the resource icon on hover */
+.extra-network-thumbs > .card ul a.resource:hover,
+.extra-network-cards > .card ul a.resource:hover
+{ background-image: url('./html/hover/resource.svg'); }
 
 /* Coloring of the metadata button on hover */
 .extra-network-thumbs > .card > .metadata-button:hover,
@@ -123,6 +155,8 @@
 /* Icons for model image actions */
 .sd-mm-gallery .sd-mm-actions > .sd-mm-send-to
 { background-image: url('./html/send-to.svg'); }
+.sd-mm-gallery .sd-mm-actions > .sd-mm-info
+{ background-image: url('./html/info.svg'); }
 .sd-mm-gallery .sd-mm-actions > .sd-mm-star
 { background-image: url('./html/star.svg'); }
 .sd-mm-gallery .sd-mm-actions > .sd-mm-delete
@@ -133,6 +167,8 @@
 /* Coloring of model image actions on hover */
 .sd-mm-gallery .sd-mm-actions > .sd-mm-send-to:hover
 { background-image: url('./html/hover/send-to.svg'); }
+.sd-mm-gallery .sd-mm-actions > .sd-mm-info:hover
+{ background-image: url('./html/hover/info.svg'); }
 .sd-mm-gallery .sd-mm-actions > .sd-mm-star:hover
 { background-image: url('./html/hover/star.svg'); }
 .sd-mm-gallery .sd-mm-actions > .sd-mm-delete:hover
@@ -164,3 +200,68 @@
 	object-fit: contain;
 	object-position: center;
 }
+
+/* Model info container */
+.sd-mm-model-info-container
+{
+	gap: 0.5em;
+	width: 60%;
+	padding: 1em;
+	font-size: 9pt;
+	max-height: 90%;
+	border-radius: 1em;
+	display: flex;
+	overflow: auto;
+	cursor: default;
+	color: #C2BDB5;
+	background: #1E2122;
+	flex-direction: column;
+}
+
+/* Model info container | Row of fields */
+.sd-mm-model-info-container .row
+{
+	gap: 1em;
+	display: flex;
+	flex-direction: row;
+}
+
+/* Model info container | Field */
+.sd-mm-model-info-container .field
+{
+	width: 100%;
+	display: flex;
+	text-align: right;
+	align-items: center;
+}
+
+/* Model info container | Vertical field */
+.sd-mm-model-info-container .vertical-field
+{
+	gap: 0.5em;
+	display: flex;
+	color: #9EBFD3;
+	flex-direction: column;
+}
+
+/* Model info container | Name of a field */
+.sd-mm-model-info-container .name
+{
+	margin-right: 1em;
+	min-width: fit-content;
+	font-family: sans-serif;
+}
+
+/* Model info container | Value of a field */
+.sd-mm-model-info-container .value
+{
+	flex-grow: 1;
+	padding: 0.5em;
+	border-radius: 0.5em;
+	background: #242728;
+	font-family: monospace;
+}
+
+/* Model info container | Value of a vertical field */
+.sd-mm-model-info-container .vertical-field .value
+{ background: rgb(41, 46, 48); }

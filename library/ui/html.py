@@ -1,5 +1,6 @@
 import time
 import urllib.parse
+from PIL import Image
 from typing	import cast
 from pathlib import Path
 
@@ -7,7 +8,6 @@ from pathlib import Path
 from library import paths
 from library import local
 from library import utilities
-from library.settings import Settings
 from library.utilities import Filename
 
 def create_image(model: local.Model, image_path: Path):
@@ -42,10 +42,20 @@ def create_image(model: local.Model, image_path: Path):
 		html += f'    <div class="sd-mm-action sd-mm-star" title="Set as preview"\n'
 		html += f'        onclick="sdmmSetPreview(\'{type}\', \'{filename}\', {index})"></div>\n'
 
-	# Send to PNG Info button
 	if has_parameters:
+		info: str = Image.open(image_path).info['parameters']
+
+		# Make info string safe for HTML
+		info = info.replace('"', '&quot;').replace("'", '&#39;')
+		info = info.replace('\r\n', '<br>').replace('\r', '<br>').replace('\n', '<br>')
+
+		# Send to PNG Info button
 		html += f'    <div class="sd-mm-action sd-mm-send-to" title="Send to txt2img"\n'
 		html += f'        onclick="sdmmSendToTxt2Img(\'{type}\', \'{filename}\', {index})"></div>\n'
+
+		# Show info button
+		html += f'    <div class="sd-mm-action sd-mm-info" title="Show info"\n'
+		html += f'        onclick="sdmmShowInfo(\'{info}\')"></div>\n'
 
 	# Delete image button
 	html += f'        <div class="sd-mm-action sd-mm-delete" title="Delete"\n'

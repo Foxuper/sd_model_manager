@@ -585,7 +585,7 @@ class Model:
 		image = self.image_by_index(index)
 		if image is not None: self.set_preview(image)
 
-	def add_custom_image(self, image_path: Path):
+	def add_custom_image(self, image_path: Path, replace_preview= False):
 		''' Add a custom image to the model '''
 
 		# Custom images have an index of 1000 or higher
@@ -609,7 +609,7 @@ class Model:
 		utilities.image_to_png(paths.IMAGES_DIR, filename)
 
 		# Set image as preview if there is no preview
-		if not self.has_preview:
+		if not self.has_preview or replace_preview:
 			self.set_preview(png_image_file)
 
 		LOGGER.info(f'Added custom image "{png_image_file.name}"')
