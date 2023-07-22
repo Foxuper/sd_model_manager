@@ -9,6 +9,7 @@ from modules import ui
 from library import paths
 from library import logger
 from library import civitai
+from library import download
 from library import sd_webui
 from library import utilities
 from library.settings import Settings
@@ -230,7 +231,7 @@ class Model:
 		safe_images: list[Path] = []
 		for image in self.all_images:
 			index = cast(int, Filename(image).get_index())
-			if index < 1000:
+			if index < 1000 and self.has_scan:
 				civitai_image = self.civitai_version.images[index]
 				if not civitai_image.is_safe:
 					continue
@@ -491,8 +492,7 @@ class Model:
 		if civitai_model is None: return
 
 		# Store Civitai database file
-		if self.json_file is not None:
-			civitai_model.store_raw_json(self.json_file)
+		civitai_model.store_raw_json(self.json_file)
 
 	def load_scan(self):
 		''' Load model scan from storage '''
@@ -560,7 +560,7 @@ class Model:
 		''' Set a preview image for the model '''
 
 		# Remove existing preview
-		if self.has_preview:
+		if self.has_preview or self.preview_file.is_symlink():
 			self.preview_file.unlink()
 
 		# Create symlink to image
@@ -626,91 +626,61 @@ class Model:
 			else:
 				image.unlink()
 
-	def download_latest(self):
-		''' Download latest version of an updatable installed model '''
+	def image_file_entities(self):
+		''' Get all missing Civitai model images as entities for the download manager '''
 
-		# Skip if model is not updatable
-		if not self.is_updatable:
-			return None
+		files = []
+		for image in self.missing_images:
 
-		# Download latest model version
-		latest_version = self.civitai_model.latest_version
-		directory = paths.default_directory(self.civitai_model.type.name)
-		filename = latest_version.download_primary_file(directory)
+			# Get corresponding Civitai image
+			image_filename = Filename(image)
+			index = cast(int, image_filename.get_index())
+			civitai_image = self.civitai_version.images[index]
 
-		# Handle download
-		return self.handle_download(self.type, filename)
+			# Generate file entity
+			files.append(download.File(civitai_image.custom_url, self.type, image_filename))
+		return files
 
-	def download_vae(self):
-		''' Download included Civitai VAE model if it is not installed yet '''
+	def vae_file_entity(self):
+		''' Get the missing Civitai VAE model file as an entity for the download manager '''
 
 		# Skip if model is not missing its VAE
 		if not self.vae_missing:
 			return None
 
-		# Download VAE file
-		vae_dir = paths.default_directory(civitai.Model.Type.VAE.name)
-		filename = self.civitai_version.download_vae_file(vae_dir)
+		# Get VAE file and convert to entity
+		file = cast(civitai.File, self.civitai_vae_file)
+		return download.File.from_civitai_file(civitai.Model.Type.VAE, file)
 
-		# Handle download
-		return self.handle_download(civitai.Model.Type.VAE, filename)
+	def latest_file_entity(self):
+		''' Get the latest Civitai version file as an entity for the download manager '''
 
-	def download_images(self):
-		''' Download all Civitai model images '''
-
-		for image in self.missing_images:
-
-			# Get image directory and filename
-			directory = image.parent
-			image_filename = Filename(image)
-
-			# Get corresponding Civitai image
-			index = cast(int, image_filename.get_index())
-			civitai_image = self.civitai_version.images[index]
-
-			# Download image
-			filename = civitai_image.download(directory, image_filename)
-
-			# Continue if download failed
-			if filename is None:
-				LOGGER.error(f'Failed to download image for model "{self.filename.full}"')
-				continue
-
-			# Convert image to PNG
-			utilities.image_to_png(directory, filename)
-
-		# Set preview image to the first available image if it is missing
-		if not self.has_preview:
-			self.select_preview()
-
-	def handle_download(self, type: civitai.Model.Type, filename: Filename | None):
-		''' Download Civitai file to a directory '''
-
-		# Return None if filename is None
-		if filename is None:
-			LOGGER.error(f'Failed to download file for model "{self.filename.full}"')
+		# Skip if model is up to date
+		if not self.is_updatable:
 			return None
 
-		# Get list of installed model names
-		names = sd_webui.model.names(type)
-		new_filename = filename
-		index = 1
+		# Get latest version and convert to entity
+		latest_version = self.civitai_model.latest_version
+		file = cast(civitai.File, latest_version.primary_file)
+		return download.File.from_civitai_file(self.type, file)
 
-		# Find a new name if there is a name conflict
-		while new_filename.name in names:
-			new_filename = filename.with_index(index)
-			index += 1
-
-		# Rename file if needed
-		if new_filename != filename:
-			file = cast(Path, sd_webui.model.file(type, filename))
-			file.rename(file.parent / new_filename.full)
-			filename = new_filename
+	@staticmethod
+	def handle_download(type: civitai.Model.Type, filename: Filename, images: list[Path]= []):
+		''' Download Civitai model file to a directory '''
 
 		# Reload filenames and scan the downloaded model
 		sd_webui.model.reload_filenames(type)
-		model = Model(type, filename)
+		model = Model.get(type, filename)
 		model.scan()
+
+		# Assert the image filenames match the model name
+		for image in images:
+			index = Filename(image).get_index()
+			image_filename = Filename(model.image_key + image.suffix)
+			image.rename(image.parent / image_filename.with_index(index).full)
+
+		# Set preview image to the first available image
+		model.select_preview()
 
 		# Return model
 		return model
@@ -788,7 +758,7 @@ class Model:
 			LOGGER.debug(f'Renamed scan information key to "{new_key}"')
 
 	def rename_images(self, new_filename: Filename):
-		''' Rename preview image file for the installed model '''
+		''' Rename all images for the installed model '''
 
 		# Get current preview image index
 		index = self.preview_index
@@ -807,8 +777,9 @@ class Model:
 
 		# Set preview image to the renamed image
 		if index is not None:
-			Model(self.type, new_filename).select_preview(index)
-			LOGGER.debug(f'Renamed preview image to "{self.preview_file.name}"')
+			model = Model(self.type, new_filename)
+			model.select_preview(index)
+			LOGGER.debug(f'Renamed preview image to "{model.preview_file.name}"')
 
 	def rename_markdown(self, new_filename: Filename):
 		''' Rename markdown file for the installed model '''
@@ -866,7 +837,7 @@ class Model:
 		''' Delete image files for the installed model '''
 
 		# Remove preview image
-		if self.has_preview:
+		if self.has_preview or self.preview_file.is_symlink():
 			self.preview_file.unlink()
 			LOGGER.debug(f'Deleted preview symlink "{self.preview_file.name}"')
 
@@ -885,7 +856,7 @@ class Model:
 	def delete_vae_symlink(self):
 		''' Remove the symlink to the required VAE file if it exists '''
 
-		if self.has_vae_symlink:
+		if self.has_vae_symlink or self.vae_symlink_file.is_symlink():
 			self.vae_symlink_file.unlink()
 			LOGGER.info(f'Removed VAE symlink "{self.vae_symlink_file.name}"')
 
@@ -959,7 +930,7 @@ class Model:
 			markdown = markdown.replace('{SIZE}', self.civitai_file.size_hr)
 
 		# Generated fields
-		vae_local_file = self.vae_model.file.name if self.vae_model is not None else 'NOT INSTALLED'
+		vae_local_file = self.vae_model.file.name if self.vae_model is not None else '`NOT INSTALLED`'
 		included_by_md = '\n'.join([f'- {model.filename.full}' for model in self.included_by])
 		trigger_words_md = '\n'.join([f'- {word}' for word in self.trigger_words])
 

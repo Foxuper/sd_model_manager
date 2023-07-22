@@ -10,7 +10,6 @@ from typing import Optional, Any
 from library import logger
 from library import utilities
 from library.settings import Settings
-from library.utilities import Filename
 
 # Logger
 LOGGER = logger.configure()
@@ -87,9 +86,10 @@ class Image(BaseModel):
 		''' The raw url of the image (without width limit) '''
 		return re.sub(r'\/width=\d+', '', self.url)
 
-	def download(self, directory: Path, filename: Filename):
-		''' Downloads the image to the specified path '''
-		return utilities.download_file(self.raw_url, directory, filename)
+	@property
+	def custom_url(self):
+		''' The url of the image with settings applied '''
+		return self.url if Settings.image_width_limit() else self.raw_url
 
 class File(BaseModel):
 	''' Civitai model file retrieved from the API '''
@@ -172,12 +172,6 @@ class File(BaseModel):
 		if self.metadata.format is not None: fields.append(self.metadata.format.value)
 		return ' '.join(fields)
 
-	def download(self, directory: Path, filename: Optional[Filename]= None):
-		''' Downloads the file to the specified path '''
-
-		if filename is None: filename = Filename(self.name)
-		return utilities.download_file(self.downloadUrl, directory, filename)
-
 class Version(BaseModel):
 	''' Civitai model version retrieved from the API '''
 
@@ -226,26 +220,6 @@ class Version(BaseModel):
 		json = Api.GET_VERSION_BY_HASH.request(hash)
 		if json is None: return None
 		return cls(**json)
-
-	def download_primary_file(self, directory: Path, filename: Optional[Filename]= None):
-		''' Downloads the primary file of the model version to the specified path '''
-
-		if self.primary_file is None:
-			LOGGER.error(f'Model version [{self.id}] has no primary file')
-			return
-
-		LOGGER.debug(f'Downloading primary file of model version [{self.id}]')
-		return self.primary_file.download(directory, filename)
-
-	def download_vae_file(self, directory: Path, filename: Optional[Filename]= None):
-		''' Downloads the VAE file of the model version to the specified path '''
-
-		if self.vae_file is None:
-			LOGGER.error(f'Model version [{self.id}] has no VAE file')
-			return
-
-		LOGGER.debug(f'Downloading VAE file of model version [{self.id}]')
-		return self.vae_file.download(directory, filename)
 
 class Model(BaseModel):
 	''' Civitai model retrieved from the API '''

@@ -7,10 +7,12 @@ from pathlib import Path
 # Extension Library
 from library import paths
 from library import local
+from library import download
 from library import utilities
 from library.utilities import Filename
 
 def create_image(model: local.Model, image_path: Path):
+	''' Creates HTML code for an image card with action buttons '''
 
 	# Get image path relative to SD web UI root and escape special URL characters
 	relative_path = image_path.relative_to(paths.ROOT_DIR)
@@ -66,6 +68,7 @@ def create_image(model: local.Model, image_path: Path):
 	return html
 
 def create_gallery(model: local.Model):
+	''' Creates HTML code for a gallery of images '''
 
 	# Get all downloaded images of the model
 	images = model.all_safe_images
@@ -86,4 +89,33 @@ def create_gallery(model: local.Model):
 		html += create_image(model, image)
 
 	html += f'</div>\n'
+	return html
+
+def create_file(file: download.File):
+	''' Creates HTML code for a file in the download manager '''
+
+	html =  f'<tr>\n'
+	html += f'    <td class="filename">\n'
+	html += f'        <div class="filename-container">{file.filename.full}</div>\n'
+	html += f'    </td>\n'
+	html += f'    <td class="status">{file.status.value}</td>\n'
+	html += f'    <td class="progress-bar">\n'
+	html += f'        <div class="bar-container">\n'
+	html += f'            <div class="bar" style="width: {file.percentage_hr}"></div>\n'
+	html += f'            <div class="percentage">{file.percentage_hr}</div>\n'
+	html += f'        </div>\n'
+	html += f'    </div>\n'
+	html += f'    <td class="info">{file.speed_hr}</td>\n'
+	html += f'    <td class="info">{file.progress_hr}</td>\n'
+	html += f'    <td class="info">{file.estimated_time_hr}</td>\n'
+	html += f'</tr>\n'
+	return html
+
+def create_manager(files: list[download.File]):
+	''' Creates HTML code for the download manager '''
+
+	html = '<table class="sd-mm-download-manager">\n'
+	for file in files:
+		html += create_file(file)
+	html += '</table>\n'
 	return html

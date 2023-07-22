@@ -8,18 +8,18 @@ let EXTENSION_TAB_BUTTON: HTMLButtonElement = null;
 
 enum ResourceType
 {
-	CHECKPOINT,
-	EMBEDDING,
-	HYPERNETWORK,
-	LORA,
-	LYCORIS,
-	VAE
+	CHECKPOINT   = 'checkpoint',
+	EMBEDDING    = 'embedding',
+	HYPERNETWORK = 'hypernetwork',
+	LORA         = 'lora',
+	LYCORIS      = 'lycoris',
+	VAE          = 'vae'
 }
 
 enum ExtraTabs
 {
-	TEXT_TO_IMAGE,
-	IMAGE_TO_IMAGE
+	TEXT_TO_IMAGE  = 'txt2img',
+	IMAGE_TO_IMAGE = 'img2img'
 }
 
 function resourceTypeFromId(id: string): ResourceType
@@ -32,71 +32,130 @@ function resourceTypeFromId(id: string): ResourceType
 	if (id.includes('vae'))               return ResourceType.VAE;
 }
 
-function getExtraTabsClass(type: ExtraTabs): string
+/** Get an element from the gradio app via a query selector */
+function getElement<T extends HTMLElement>(query: string): T
+{ return gradioApp().querySelector(query) as T; }
+
+/** Get many elements from the gradio app via a query selector */
+function getElements<T extends HTMLElement>(query: string): NodeListOf<T>
+{ return gradioApp().querySelectorAll(query) as NodeListOf<T>; }
+
+/** Triggers a button click after a delay */
+function triggerButton(button_id: string, delay: number = 0)
 {
-	if (type == ExtraTabs.TEXT_TO_IMAGE)  return 'txt2img_extra_tabs';
-	if (type == ExtraTabs.IMAGE_TO_IMAGE) return 'img2img_extra_tabs';
+	const button = getElement<HTMLButtonElement>(button_id);
+	setTimeout(() => button.click(), delay);
 }
 
-/** Refresh the embedding model list */
-function clickEmbeddingReloadButton()
+/** Assigns an action to a button if it doesn't have one already */
+function assignButtonAction(button_id: string, action: () => void)
 {
-	// Get the refresh button of the embedding tab
-	const refresh_embedding_button: HTMLButtonElement =
-		gradioApp().querySelector('#sd_mm_refresh_embedding');
-
-	// Click the refresh button after 500ms
-	setTimeout(() => refresh_embedding_button.click(), 500);
+	const button = getElement<HTMLButtonElement>(button_id);
+	if (button.onclick != null) return;
+	button.onclick = action;
 }
 
-/** Handles the main download button on the home tab */
-function handleHomeDownloadButton()
+/** Executes a callback when the value of a button or textarea changes */
+function waitForValueChange(component_id: string, text: string, action: () => void, delay: number = 200)
 {
-	// Find the download button
-	const download_button: HTMLButtonElement =
-		gradioApp().querySelector('#sd-mm-download-model');
-
-	// Skip if the button already has an onclick event
-	if (download_button.onclick != null) return;
-
-	// Add an onclick event to the download button
-	download_button.onclick = () =>
+	const element = getElement<HTMLButtonElement | HTMLTextAreaElement>(component_id);
+	const interval = setInterval(function()
 	{
-		// Get the model type textbox
-		const model_type: HTMLTextAreaElement =
-			gradioApp().querySelector('#sd-mm-model-type textarea');
-
-		// Get the global refresh button
-		const main_refresh_button: HTMLButtonElement =
-			gradioApp().querySelector('#sd-mm-refresh-button');
-
-		// Get the refresh button of the model type
-		const refresh_button: HTMLButtonElement =
-			gradioApp().querySelector(`#sd_mm_refresh_${model_type.value}`);
-
-		// Disable the download button
-		download_button.disabled = true;
-
-		// Trigger the model refresh button when the download is done
-		const interval = setInterval(() =>
+		if (element.innerText == text || element.value == text)
 		{
-			if (download_button.innerText != 'Download')
-			{
-				main_refresh_button.click();
-				setTimeout(() => refresh_button.click(), 500);
-				clearInterval(interval);
-			}
+			action();
+			clearInterval(interval);
 		}
-		, 100);
-	};
+	}
+	, delay);
+}
+
+/** Assigns an action to a button that will trigger when the value changes */
+function assignWaitForValueChange(component_id: string, text: string, action: () => void, delay: number = 200)
+{ assignButtonAction(component_id, () => waitForValueChange(component_id, text, action, delay)); }
+
+/** Refreshes one of the model tabs */
+function refreshTab(type: ResourceType, delay: number = 0)
+{ triggerButton(`#sd_mm_refresh_${type.valueOf()}`, delay); }
+
+/** Refreshes all the model tabs */
+function refreshAllTabs(delay: number = 0, except: ResourceType = null)
+{
+	for (const key of Object.keys(ResourceType))
+	{
+		if (ResourceType[key] == except) continue;
+		refreshTab(ResourceType[key], delay);
+	}
+}
+
+/** Refreshes the home tab menu */
+function refreshHomeMenu(delay: number = 0)
+{ triggerButton('#sd_mm_refresh_button', delay); }
+
+/** Shows the global download manager */
+function showDownloadManager()
+{
+	getElement('#sd_mm_download_manager').style.display = 'block';
+	refreshHomeMenu();
+}
+
+/** Hides the global download manager */
+function hideDownloadManager()
+{
+	getElement('#sd_mm_download_manager').style.display = 'none';
+	triggerButton('#sd_mm_download_refresh', 500);
+	refreshHomeMenu();
+}
+
+/** Handles events when a download button is clicked */
+function handleDownloadButton(download_button_id: string)
+{
+	// Shows the download manager when the download starts
+	assignWaitForValueChange(download_button_id, 'Downloading...', function()
+	{
+		showDownloadManager();
+		triggerButton('#sd_mm_download_manager_start');
+
+		// Hides the download manager when the download finishes
+		waitForValueChange(download_button_id, 'Download Complete', function()
+		{
+			hideDownloadManager();
+			refreshAllTabs(500);
+		});
+	});
+}
+
+/** Handles the download images button on the model tabs */
+function handleTabDownloadImagesButton(type: ResourceType)
+{ handleDownloadButton(`#sd_mm_download_images_${type.valueOf()}`); }
+
+/** Handles the download vaes button on the model tabs */
+function handleTabDownloadVaeButton(type: ResourceType)
+{ handleDownloadButton(`#sd_mm_download_vae_${type.valueOf()}`); }
+
+/** Handles the download latest button on the model tabs */
+function handleTabDownloadLatestButton(type: ResourceType)
+{ handleDownloadButton(`#sd_mm_download_latest_${type.valueOf()}`); }
+
+/** Handles the delete model button on the model tabs */
+function handleTabDeleteModelButton(type: ResourceType)
+{
+	assignButtonAction(`#sd_mm_delete_${type.valueOf()}`, function()
+	{
+		// Refresh the tabs and the home menu when the delete is finished
+		waitForValueChange(`#sd_mm_search_${type.valueOf()} textarea`, '', function()
+		{
+			refreshAllTabs(0, type);
+			refreshHomeMenu();
+			triggerButton('#sd_mm_download_refresh');
+		});
+	});
 }
 
 /** Find the extension tab button and save it in a global variable */
 function findExtensionTabButton()
 {
-	// Get the tab buttons
-	const buttons: NodeListOf<HTMLButtonElement> =
-		gradioApp().querySelectorAll('#tabs .tab-nav button');
+	const buttons = getElements<HTMLButtonElement>('#tabs .tab-nav button');
 
 	// Find the extension tab button
 	for (const button of buttons)
@@ -114,11 +173,11 @@ function addSearchTriggerToDataframe(type: ResourceType)
 {
 	// Get the search input
 	const search_input: HTMLTextAreaElement =
-		gradioApp().querySelector(`#sd_mm_search_${String(ResourceType[type]).toLowerCase()} textarea`);
+		getElement(`#sd_mm_search_${type.valueOf()} textarea`);
 
 	// Get the rows of the dataframe
 	const dataframe_rows: NodeListOf<HTMLTableRowElement> =
-		gradioApp().querySelectorAll(`#sd_mm_dataframe_${String(ResourceType[type]).toLowerCase()} tbody tr`);
+		getElements(`#sd_mm_dataframe_${type.valueOf()} tbody tr`);
 
 	// Iterate over the rows of the dataframe
 	for (const row of dataframe_rows)
@@ -130,7 +189,7 @@ function addSearchTriggerToDataframe(type: ResourceType)
 		if (row.onclick != null) continue;
 
 		// Add onclick event to the row
-		row.onclick = function ()
+		row.onclick = function()
 		{
 			// Modify the search input and trigger the search
 			search_input.value = filename.innerHTML;
@@ -143,8 +202,8 @@ function addSearchTriggerToDataframe(type: ResourceType)
 function addResourceToModelCards(type: ExtraTabs)
 {
 	// Get the model cards
-	const type_class = getExtraTabsClass(type);
-	const model_cards = gradioApp().querySelectorAll(`#${type_class} .card .actions .additional`);
+	const type_class = `${type.valueOf()}_extra_tabs`;
+	const model_cards = getElements(`#${type_class} .card .actions .additional`);
 
 	// Iterate over the model cards
 	for (const card of model_cards)
@@ -160,10 +219,10 @@ function addResourceToModelCards(type: ExtraTabs)
 
 		// Get the model name and type
 		const model_name = card_div.getAttribute('data-sort-name');
-		const model_type = String(ResourceType[resourceTypeFromId(parent_div.id)]).toLowerCase();
+		const model_type = resourceTypeFromId(parent_div.id).valueOf();
 
 		// Override the replace preview button
-		const replace_action = `onclick="sdmmAddImage(event, '${model_type}', '${model_name}')"`;
+		const replace_action = `onclick="sdmmReplacePreview(event, '${model_type}', '${model_name}')"`;
 		actions_ul.innerHTML = `<a href="#" title="Use generated image as preview" ${replace_action}></a>`;
 
 		// Create the link to the resource page
@@ -172,7 +231,8 @@ function addResourceToModelCards(type: ExtraTabs)
 	}
 }
 
-function sdmmAddImage(event: Event, model_type: string, model_name: string)
+/** Replace the preview image of a model with the generated image */
+function sdmmReplacePreview(event: Event, model_type: string, model_name: string)
 {
 	// Prevent the default action of the click event
 	event.stopPropagation();
@@ -182,8 +242,7 @@ function sdmmAddImage(event: Event, model_type: string, model_name: string)
 	let current_tab = get_uiCurrentTab().innerText.trim();
 
 	// Get the gallery element
-	const gallery: NodeListOf<HTMLImageElement> =
-		gradioApp().querySelectorAll(`#${current_tab}_gallery button > img`);
+	const gallery = getElements<HTMLImageElement>(`#${current_tab}_gallery button > img`);
 	if (gallery.length == 0) return;
 
 	// Get the selected gallery index
@@ -196,15 +255,13 @@ function sdmmAddImage(event: Event, model_type: string, model_name: string)
 	const image_path = encodeURIComponent(gallery[index].src.split('/file=')[1]);
 	const query_string = `?type=${type}&filename=${filename}&image=${image_path}`;
 
-	// Send the request
+	// Send the request and refresh the thumbnails
 	fetch(origin + `/sd-mm/add-image/${query_string}`, { method: 'POST' });
+	getElement(`#${current_tab}_extra_refresh`).click();
 
-	// Get the refresh button
-	const refresh_button: HTMLButtonElement =
-		gradioApp().querySelector(`#${current_tab}_extra_refresh`);
-
-	// Trigger the refresh button
-	refresh_button.click();
+	// Refresh the tab and home menu
+	refreshTab(ResourceType[type]);
+	refreshHomeMenu();
 }
 
 /** Open the resource page when clicking on the resource action button */
@@ -215,11 +272,10 @@ function sdmmGoToResource(event: Event, model_type: string, model_name: string)
 	event.preventDefault();
 
 	// Get the search input
-	const search_input: HTMLTextAreaElement =
-		gradioApp().querySelector(`#sd_mm_search_${model_type} textarea`);
+	const search_input = getElement<HTMLTextAreaElement>(`#sd_mm_search_${model_type} textarea`);
 
 	// Get all the tab buttons
-	const nav_div = gradioApp().querySelector('#tab_sd_model_manager .tab-nav');
+	const nav_div = getElement('#tab_sd_model_manager .tab-nav');
 	const tab_buttons: NodeListOf<HTMLButtonElement> = nav_div.querySelectorAll('button');
 
 	for (const button of tab_buttons)
@@ -255,7 +311,7 @@ function sdmmZoomImage(event: Event)
 
 	// Create the overlay div
 	const overlay = document.createElement('div');
-	overlay.onclick = () => overlay.remove();
+	overlay.onclick = overlay.remove;
 	overlay.id = 'sd-mm-full-screen-overlay';
 
 	// Set the image as the background of the overlay div
@@ -372,7 +428,7 @@ function sdmmShowInfo(info: string)
 {
 	// Create the overlay div
 	const overlay = document.createElement('div');
-	overlay.onclick = () => overlay.remove();
+	overlay.onclick = overlay.remove;
 	overlay.id = 'sd-mm-full-screen-overlay';
 
 	// Build the html for the image info
@@ -394,15 +450,10 @@ function sdmmSetPreview(type: string, filename: string, index: number)
 	filename = encodeURIComponent(filename);
 	const query_string = `?type=${type}&filename=${filename}&index=${index}`;
 
-	// Send the request
+	// Send the request and refresh the tab
 	fetch(origin + `/sd-mm/set-preview${query_string}`, { method: 'POST' });
-
-	// Get the refresh button
-	const refresh_button: HTMLButtonElement =
-		gradioApp().querySelector(`#sd_mm_refresh_${type.toLowerCase()}`);
-
-	// Trigger the refresh button
-	refresh_button.click();
+	refreshTab(ResourceType[type]);
+	refreshHomeMenu(500);
 }
 
 /** API call to delete an image of a model */
@@ -412,71 +463,48 @@ function sdmmDeleteImage(type: string, filename: string, index: number)
 	filename = encodeURIComponent(filename);
 	const query_string = `?type=${type}&filename=${filename}&index=${index}`;
 
-	// Send the request
+	// Send the request and refresh the tab
 	fetch(origin + `/sd-mm/delete-image/${query_string}`, { method: 'POST' });
-
-	// Get the refresh button
-	const refresh_button: HTMLButtonElement =
-		gradioApp().querySelector(`#sd_mm_refresh_${type.toLowerCase()}`);
-
-	// Trigger the refresh button
-	refresh_button.click();
+	refreshTab(ResourceType[type]);
+	refreshHomeMenu(500);
 }
 
 /** Send the image to the txt2img tab */
 function sdmmSendToTxt2Img(type: string, filename: string, index: number)
 {
-	// Get the request input
-	const request_input: HTMLTextAreaElement =
-		gradioApp().querySelector('#sd_mm_txt2img_request textarea');
-
-	// Get the send button
-	const send_button: HTMLButtonElement =
-		gradioApp().querySelector('#sd_mm_txt2img_send');
-
-	// Get the info textbox
-	const info_textbox: HTMLTextAreaElement =
-		gradioApp().querySelector('#sd_mm_txt2img_info textarea');
+	// Get the request and info textboxes
+	const request_input = getElement<HTMLTextAreaElement>('#sd_mm_txt2img_request textarea');
+	const info_textbox = getElement<HTMLTextAreaElement>('#sd_mm_txt2img_info textarea');
 
 	// Set the request input value and trigger the input event
 	request_input.value = `${type}/${filename}/${index}`;
 	request_input.dispatchEvent(new Event('input'));
 
 	// The info textbox will be filled when the request is done
-	const interval = setInterval(() =>
+	const interval = setInterval(function()
 	{
 		if (info_textbox.value != '')
 		{
 			// Trigger the send button and clear the info textbox
-			send_button.click();
+			triggerButton('#sd_mm_txt2img_send');
 			info_textbox.value = '';
 			clearInterval(interval);
 		}
 	}
-	, 100);
+	, 200);
 }
 
 /** Trigger the image input to add an image */
 function sdmmTriggerImageInput(type: string)
 {
 	// Get the image input
-	const image_input: HTMLInputElement =
-		gradioApp().querySelector(`#sd_mm_image_input_${type.toLowerCase()} input`);
+	const image_input = getElement(`#sd_mm_image_input_${type.toLowerCase()} input`);
 
 	// Clear the input after selecting an image
-	image_input.addEventListener('change', () =>
+	image_input.addEventListener('change', function()
 	{
 		// Delay the click event to make sure the image is submitted
-		setTimeout(() =>
-		{
-			// Get the clear input button
-			const clear_button: HTMLButtonElement =
-				gradioApp().querySelector(`#sd_mm_image_input_${type.toLowerCase()} button`);
-
-			// Trigger the clear button
-			clear_button.click();
-		},
-		500);
+		setTimeout(() => triggerButton(`#sd_mm_image_input_${type.toLowerCase()} button`), 500);
 	});
 
 	// Click the image input
@@ -485,13 +513,35 @@ function sdmmTriggerImageInput(type: string)
 
 onUiLoaded(function()
 {
-	clickEmbeddingReloadButton();
-	handleHomeDownloadButton();
+	// Home tab button events
+	assignWaitForValueChange('#sd_mm_scan_models_button', 'Update Scans', refreshAllTabs);
+	assignWaitForValueChange('#sd_mm_remove_nsfw_previews_button', 'IDLE', refreshAllTabs);
+	assignWaitForValueChange('#sd_mm_fix_missing_previews_button', 'IDLE', refreshAllTabs);
+	assignWaitForValueChange('#sd_mm_generate_markdown_button', 'Regenerate Markdown Files', refreshAllTabs);
+	handleDownloadButton('#sd_mm_download_images_button');
+	handleDownloadButton('#sd_mm_download_vaes_button');
+	handleDownloadButton('#sd_mm_download_model_button');
+
+	// Download manager button events
+	assignButtonAction('#sd_mm_download_manager_stop', hideDownloadManager);
+
+	// Model tabs button events
+	for (const key of Object.keys(ResourceType))
+	{
+		handleTabDownloadImagesButton(ResourceType[key]);
+		handleTabDownloadVaeButton(ResourceType[key]);
+		handleTabDownloadLatestButton(ResourceType[key]);
+		handleTabDeleteModelButton(ResourceType[key]);
+	}
+
+	refreshAllTabs(500);
 });
 
 onAfterUiUpdate(function()
 {
 	findExtensionTabButton();
-	Object.keys(ResourceType).forEach(key => addSearchTriggerToDataframe(ResourceType[key]));
-	Object.keys(ExtraTabs).forEach(key => addResourceToModelCards(ExtraTabs[key]));
+	for (const key of Object.keys(ResourceType))
+		addSearchTriggerToDataframe(ResourceType[key]);
+	for (const key of Object.keys(ExtraTabs))
+		addResourceToModelCards(ExtraTabs[key]);
 });

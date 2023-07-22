@@ -1,12 +1,9 @@
 import re
-import sys
-import time
 import json
 import hashlib
-import requests
 from PIL import Image
+from typing import Any
 from pathlib import Path
-from typing import Optional, Any
 from PIL.PngImagePlugin import PngInfo
 from modules.images import read_info_from_image
 
@@ -95,8 +92,8 @@ class Filename:
 	def get_index(self, separator= '.'):
 		''' Returns the index component of the filename if it exists '''
 
-		search = re.search(rf'{re.escape(separator)}(\d+)$', self.name)
-		return int(search.group(1)) if search is not None else None
+		search = re.findall(rf'{re.escape(separator)}(\d+)', self.name)
+		return int(search[-1]) if len(search) > 0 else None
 
 	def find_nonexistent(self, directory: Path, separator= '.'):
 		''' Returns a new filename with the next available index component in the given directory '''
@@ -211,13 +208,27 @@ def format_size_hr(kilobytes: float):
 	''' Formats a size in Kylobytes to a human readable string '''
 
 	if kilobytes < 1024:
-		return f'{kilobytes:.2f} KB'
+		return f'{kilobytes:.0f} KB' if kilobytes.is_integer() else f'{kilobytes:.0f} KB'
 	elif kilobytes < 1024 * 1024:
 		megabytes = kilobytes / 1024
-		return f'{megabytes:.2f} MB'
+		return f'{megabytes:.0f} MB' if megabytes.is_integer() else f'{megabytes:.2f} MB'
 	else:
 		gigabytes = kilobytes / (1024 * 1024)
-		return f'{gigabytes:.2f} GB'
+		return f'{gigabytes:.0f} GB' if gigabytes.is_integer() else f'{gigabytes:.2f} GB'
+
+def format_time_hr(seconds: float):
+	''' Formats a time in seconds to a human readable string '''
+
+	if seconds < 60:
+		return f'{seconds:.1f} sec'
+	elif seconds < 60 * 60:
+		minutes = seconds / 60
+		seconds = seconds % 60
+		return f'{minutes:.0f}:{seconds:02.0f} min'
+	else:
+		hours = seconds / (60 * 60)
+		minutes = (seconds % (60 * 60)) / 60
+		return f'{hours:.0f}:{minutes:02.0f} hr'
 
 def image_has_parameters(image_file: Path):
 	''' Returns true if an image has parameters '''
@@ -230,7 +241,7 @@ def image_to_png(directory: Path, filename: Filename):
 
 	# Skip if image is already a PNG
 	if filename.extension == '.png':
-		return
+		return directory / filename.full
 
 	# Get image paths
 	image_file = directory / filename.full
@@ -252,120 +263,4 @@ def image_to_png(directory: Path, filename: Filename):
 
 	# Delete original image
 	image_file.unlink()
-
-def progress_bar(label: str, speed: str, progress: Optional[float]= None, length= 50):
-	''' Prints a progress bar '''
-
-	# Generates the progress bar
-	if progress is not None:
-		filled_length = int(length * progress)
-		bar = '█' * filled_length + '░' * (length - filled_length)
-		bar_string = f'{label}: |{bar}| {progress * 100:.1f}%'
-	else:
-		bar_string = f'{label}'
-
-	# Prints the progress bar and speed
-	sys.stdout.write(logger.TerminalColor.BLUE.wrap(bar_string))
-	sys.stdout.write(f' - {speed}')
-
-	# Flushes the buffer
-	sys.stdout.write('    \r')
-	sys.stdout.flush()
-
-def download_file(url: str, directory: Path, filename: Filename):
-	'''
-		Downloads a file from a URL
-		- The header file extension is used over the provided filename extension
-		- If the file already exists, generates a new name with an index suffix
-		- Returns the name of the downloaded file or None if the download failed
-	'''
-
-	LOGGER.info(f'Start download from: {url}')
-
-	# Make the request
-	try:
-		response = requests.get(url, stream= True)
-	except Exception as e:
-		LOGGER.error(f'The download request failed: {e}')
-		return None
-
-	# Get content type
-	try:
-		content_type = response.headers['Content-Type']
-	except:
-		content_type = ''
-
-	# The file is an image
-	if 'image' in content_type:
-		file_size = None
-
-		# Parse file extension from content type
-		search = re.search(r'image\/([\w]+)', content_type)
-		extension = f'.{search.group(1)}' if search is not None else None
-	else:
-		# Get file info from header
-		try:
-			file_size = int(response.headers['Content-Length'])
-			file_disposition = response.headers['Content-Disposition']
-		except:
-			LOGGER.error(f'Failed to get file info from header: {response.headers}')
-			return None
-
-		# Parse file name from disposition
-		search = re.search(r'filename="([\w.]+)"', file_disposition)
-		extension = Filename(search.group(1)).extension if search is not None else None
-
-	# Get the file extension
-	extension = filename.extension if extension is None else extension
-
-	# Find a unique file name and get the file path
-	filename = filename.with_extension(extension).find_nonexistent(directory, '')
-	LOGGER.debug(f'Download file name: {filename.full}')
-	file = directory / filename.full
-
-	# Download file
-	try:
-		downloaded_size = 0
-		download_start = time.perf_counter()
-
-		with file.open('wb') as f:
-			for chunk in response.iter_content(1024 * 1024):
-				downloaded_size += len(chunk)
-				f.write(chunk)
-
-				# Calculate time difference
-				current_time = time.perf_counter()
-				time_delta = current_time - download_start
-				current_time = download_start
-
-				# Download speed
-				download_speed = downloaded_size / time_delta
-				formatted_speed = f'{download_speed / 1024 / 1024:.2f} MB/s'
-
-				# Progress bar
-				progress = None if file_size is None else downloaded_size / file_size
-				progress_bar('> Downloading', formatted_speed, progress)
-
-			# Flush progress bar
-			sys.stdout.write('\n')
-			sys.stdout.flush()
-
-			# Verify file size
-			if file_size is None or downloaded_size == file_size:
-				LOGGER.info(f'Download complete')
-				size_error = False
-			else:
-				size_error = True
-
-		# Delete file if size mismatch
-		if size_error:
-			LOGGER.error(f'Download failed: File size mismatch')
-			if file.exists(): file.unlink()
-			return None
-
-		# Return filename on success
-		return filename
-
-	except Exception as e:
-		LOGGER.error(f'Download failed: {e}')
-		return None
+	return png_image_file

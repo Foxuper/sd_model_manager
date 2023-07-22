@@ -2,10 +2,10 @@ from pathlib import Path
 from fastapi import FastAPI
 
 # Extension Library
-from library import sd_webui
 from library import local
 from library import logger
 from library import civitai
+from library import sd_webui
 from library.utilities import Filename
 
 # Logger

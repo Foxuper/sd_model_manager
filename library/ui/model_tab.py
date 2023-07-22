@@ -1,6 +1,7 @@
+import time
 import gradio as gr
 from pathlib import Path
-from typing	import Literal
+from typing	import Literal, cast
 from tempfile import _TemporaryFileWrapper
 
 # SD Webui Modules
@@ -10,10 +11,13 @@ from modules import ui
 from library import local
 from library import logger
 from library import civitai
-from library.ui import html
 from library import sd_webui
-from library import utilities
+from library import download
+from library.settings import Settings
 from library.utilities import Filename
+
+# Extension UI
+from library.ui import html_blocks
 
 # Logger
 LOGGER = logger.configure()
@@ -105,36 +109,44 @@ class CivitaiActions:
 
 	scan:            gr.Button
 	update_scan:     gr.Button
-	download_vae:    gr.Button
 	download_images: gr.Button
+	download_vae:    gr.Button
 	download_latest: gr.Button
 
-	def __init__(self):
+	def __init__(self, model: local.Model):
 		with gr.Box(elem_classes= 'sd-mm-padded-box'):
 			with gr.Column():
 				gr.Markdown('### Civitai')
 				with gr.Row():
+					type = model.type.name.lower()
+
+					def images_status():
+						return get_component_status(model)['civitai.download_images']
+					def vae_status():
+						return get_component_status(model)['civitai.download_vae']
+					def latest_status():
+						return get_component_status(model)['civitai.download_latest']
 
 					# Civitai buttons
 					self.scan            = gr.Button('Scan', variant= 'primary')
 					self.update_scan     = gr.Button('Update Scan')
-					self.download_vae	 = gr.Button('Download VAE')
-					self.download_images = gr.Button('Download Images')
-					self.download_latest = gr.Button('Download Latest')
+					self.download_images = gr.Button(images_status, elem_id= f'sd_mm_download_images_{type}')
+					self.download_vae	 = gr.Button(vae_status, elem_id= f'sd_mm_download_vae_{type}')
+					self.download_latest = gr.Button(latest_status, elem_id= f'sd_mm_download_latest_{type}')
 
 class ModelActions:
 	''' Model actions component for the model tab '''
 
 	delete: gr.Button
 
-	def __init__(self):
+	def __init__(self, type: civitai.Model.Type):
 		with gr.Box(elem_classes= 'sd-mm-padded-box'):
 			with gr.Column():
 				gr.Markdown('### Model')
 				with gr.Row():
 
 					# Model buttons
-					self.delete = gr.Button('Delete', variant= 'stop')
+					self.delete = gr.Button('Delete', variant= 'stop', elem_id= f'sd_mm_delete_{type.name.lower()}')
 
 def get_model_table(type: civitai.Model.Type):
 	''' Get a table with all the models of a given type '''
@@ -182,7 +194,7 @@ def get_component_status(model: local.Model):
 		'view': gr.update(visible= model.filename.full != ''),
 
 		# Gallery component
-		'gallery.html': gr.update(value= html.create_gallery(model)),
+		'gallery.html': gr.update(value= html_blocks.create_gallery(model)),
 		'gallery.add': gr.update(visible= all_images == 0),
 
 		# Markdown component
@@ -196,9 +208,9 @@ def get_component_status(model: local.Model):
 		# Civitai buttons
 		'civitai.scan':            gr.update(visible= not model.has_scan),
 		'civitai.update_scan':     gr.update(visible= model.has_scan),
-		'civitai.download_vae':    gr.update(visible= model.vae_missing),
-		'civitai.download_images': gr.update(visible= missing_images > 0, value= download_images),
-		'civitai.download_latest': gr.update(visible= model.is_updatable)
+		'civitai.download_images': gr.update(interactive= True, visible= missing_images > 0, value= download_images),
+		'civitai.download_vae':    gr.update(interactive= True, visible= model.vae_missing, value= 'Download VAE'),
+		'civitai.download_latest': gr.update(interactive= True, visible= model.is_updatable, value= 'Download Latest')
 	}
 
 def run_filter_table(model: local.Model, filter= '', mode: Literal['and', 'or']= 'and'):
@@ -235,7 +247,6 @@ def run_add_images(model_state: local.Model, images: list[_TemporaryFileWrapper]
 
 def run_search_refresh(model: local.Model, filter: str):
 	local.clear_cache()
-	utilities.clear_json_cache()
 	sd_webui.model.reload_filenames(model.type)
 	return run_filter_table(model, filter)
 
@@ -262,21 +273,112 @@ def run_civitai_update_scan(model: local.Model):
 	LOGGER.info(f'Updated scan for "{model.filename.full}"')
 	return run_filter_table(model, model.filename.full)
 
-def run_civitai_download_vae(model: local.Model):
-	vae_model = model.download_vae()
-	if vae_model is not None:
-		LOGGER.info(f'Downloaded VAE "{vae_model.filename.full}"')
-	return run_filter_table(model, model.filename.full)
-
 def run_civitai_download_images(model: local.Model):
-	model.download_images()
-	return run_filter_table(model, model.filename.full)
+	yield gr.update(interactive= False, value= 'Initializing...')
+
+	# Get download manager instance
+	download_manager = download.DownloadManager.instance()
+	image_entities: list[download.File] = []
+
+	# Create image entities and enqueue them
+	for image in model.image_file_entities():
+		download_manager.enqueue(image)
+		image_entities.append(image)
+
+	# Start the download manager
+	download_manager.start()
+
+	# Wait for the download to finish
+	while download_manager.running:
+		yield gr.update(interactive= False, value= 'Downloading...')
+		time.sleep(0.2)
+
+	# Fix missing previews
+	if model.has_missing_preview:
+		model.select_preview()
+
+	# Yield final status
+	if download_manager.all_complete:
+		yield gr.update(interactive= False, value= 'Download Complete')
+	else:
+		yield get_component_status(model)['civitai.download_images']
+
+def run_civitai_download_vae(model: local.Model):
+	yield gr.update(interactive= False, value= 'Initializing...')
+
+	# Get download manager instance
+	download_manager = download.DownloadManager.instance()
+
+	# Create VAE entity and enqueue it
+	vae_entity = cast(download.File, model.vae_file_entity())
+	download_manager.enqueue(vae_entity)
+
+	# Start the download manager
+	download_manager.start()
+
+	# Wait for the download to finish
+	while download_manager.running:
+		yield gr.update(interactive= False, value= 'Downloading...')
+		time.sleep(0.2)
+
+	# Handle the downloaded VAEs
+	if vae_entity.complete:
+		local.Model.handle_download(civitai.Model.Type.VAE, vae_entity.filename)
+
+	# Yield final status
+	if download_manager.all_complete:
+		yield gr.update(interactive= False, value= 'Download Complete')
+	else:
+		yield get_component_status(model)['civitai.download_vae']
 
 def run_civitai_download_latest(model: local.Model):
-	latest_model = model.download_latest()
-	if latest_model is not None:
-		LOGGER.info(f'Downloaded latest version "{latest_model.filename.full}"')
-	return run_filter_table(model, model.filename.full)
+	yield gr.update(interactive= False, value= 'Initializing...')
+
+	# Get download manager instance
+	download_manager = download.DownloadManager.instance()
+	image_entities: list[download.File] = []
+
+	# Create latest model version file entity and enqueue it
+	latest_entity = cast(download.File, model.latest_file_entity())
+	download_manager.enqueue(latest_entity)
+
+	# Do not download images if the model entity is invalid
+	if latest_entity.status == download.File.Status.INVALID:
+		yield get_component_status(model)['civitai.download_latest']
+		return
+
+	# Create image entities and enqueue if auto image download is enabled
+	if Settings.auto_image_download():
+		version = model.civitai_model.latest_version
+		for index, image in enumerate(version.images):
+			filename = latest_entity.filename.with_index(index)
+			image_entity = download.File.from_civitai_image(model.type, image, filename)
+			download_manager.enqueue(image_entity)
+			image_entities.append(image_entity)
+
+	# Start the download manager
+	download_manager.start()
+
+	# Wait for the download to finish
+	while download_manager.running:
+		yield gr.update(interactive= False, value= 'Downloading...')
+		time.sleep(0.2)
+
+	# Remove image entities if main download is not complete
+	if not latest_entity.complete:
+		for image_entity in image_entities:
+			image_entity.remove_file()
+
+	# Handle the downloaded model and images
+	else:
+		images = [image.file for image in image_entities if image.complete]
+		local.Model.handle_download(model.type, latest_entity.filename, images)
+
+	# Yield final status
+	if download_manager.all_complete:
+		yield gr.update(interactive= False, value= 'Download Complete')
+	else:
+		yield get_component_status(model)['civitai.download_latest']
 
 def run_model_delete(model: local.Model):
 	model.delete()
@@ -308,8 +410,8 @@ def component(type: civitai.Model.Type):
 				model_name = ModelNameEditor()
 				with gr.Row():
 					with gr.Column(scale = 4):
-						civitai = CivitaiActions()
-					model = ModelActions()
+						civitai = CivitaiActions(model_state.value)
+					model = ModelActions(type)
 
 		search_inputs = \
 		[
@@ -333,8 +435,8 @@ def component(type: civitai.Model.Type):
 			model_name.reset,
 			civitai.scan,
 			civitai.update_scan,
-			civitai.download_vae,
 			civitai.download_images,
+			civitai.download_vae,
 			civitai.download_latest
 		]
 
@@ -365,9 +467,9 @@ def component(type: civitai.Model.Type):
 		# Civitai
 		civitai.scan.click(run_civitai_scan, [model_state], search_outputs)
 		civitai.update_scan.click(run_civitai_update_scan, [model_state], search_outputs)
-		civitai.download_vae.click(run_civitai_download_vae, [model_state], search_outputs)
-		civitai.download_images.click(run_civitai_download_images, [model_state], search_outputs)
-		civitai.download_latest.click(run_civitai_download_latest, [model_state], search_outputs)
+		civitai.download_images.click(run_civitai_download_images, [model_state], civitai.download_images)
+		civitai.download_vae.click(run_civitai_download_vae, [model_state], civitai.download_vae)
+		civitai.download_latest.click(run_civitai_download_latest, [model_state], civitai.download_latest)
 
 		# Model
 		model.delete.click(run_model_delete, [model_state], [search.input])

@@ -213,7 +213,7 @@
 {
 	gap: 0.5em;
 	width: 60%;
-	padding: 1em;
+	padding: 1.5em;
 	font-size: 10pt;
 	max-height: 90%;
 	border-radius: 1em;
@@ -269,6 +269,95 @@
 	font-family: monospace;
 }
 
-/* Model info container | Value of a vertical field */
+/* Model info container | Color for the value of a vertical field */
 .sd-mm-model-info-container .vertical-field .value
 { background: rgb(41, 46, 48); }
+
+/* Padding for the model search button */
+#sd_mm_download_search
+{
+	padding-left: 5em;
+	padding-right: 5em;
+}
+
+/* Remove orange border from download manager */
+#sd_mm_download_manager .gradio-html .generating
+{ border: none; }
+
+/* Download manager container */
+.sd-mm-download-manager
+{
+	width: 100%;
+	padding-top: 0.5em;
+	overflow: auto;
+	display: block;
+	font-family: sans-serif;
+}
+
+/* Download manager | Common style for table cells */
+.sd-mm-download-manager td
+{
+	padding: 0.2em 2em !important;
+	text-align: center !important;
+	border: none !important;
+}
+
+/* Download manager | Table row filename */
+.sd-mm-download-manager .filename
+{ padding-left: 1em !important; }
+
+/* Download manager | Filename container */
+.filename .filename-container
+{
+	padding: 0.2em 1.5em;
+	border-radius: 0.5em;
+	white-space: nowrap;
+	background: #24282A;
+	font-family: monospace;
+}
+
+/* Download manager | File status */
+.sd-mm-download-manager .status
+{ font-weight: bold; }
+
+/* Download manager | File progress bar */
+.sd-mm-download-manager .progress-bar
+{
+	padding: 0 !important;
+	width: 100%;
+	min-width: 20em;
+	position: relative;
+}
+
+/* Download manager | File progress bar container */
+.progress-bar .bar-container
+{
+	height: 1.8em;
+	border-radius: 0.5em;
+	overflow: hidden;
+	background-color: #0D303E;
+}
+
+/* Download manager | File progress bar */
+.bar-container .bar
+{
+	height: 100%;
+	border-radius: 0.5em;
+	background: #006187;
+}
+
+/* Download manager | File progress bar percentage text */
+.bar-container .percentage
+{
+	top: 50%;
+	left: 50%;
+	transform: translate(-50%, -50%);
+	position: absolute;
+}
+
+/* Download manager | File information field */
+.sd-mm-download-manager .info
+{
+	font-size: 9pt;
+	white-space: nowrap;
+}

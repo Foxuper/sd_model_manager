@@ -12,7 +12,13 @@ from library import civitai
 from library import sd_webui
 from library import settings
 from library import utilities
-from library.ui import txt2img, model_tab, download, main_menu
+
+# Extension UI
+from library.ui import home_menu
+from library.ui import home_download
+from library.ui import model_tab
+from library.ui import download_manager
+from library.ui import send_to_txt2img
 
 # Logger
 LOGGER = logger.configure()
@@ -33,18 +39,19 @@ def all_model_types():
 def on_ui_tabs():
 	with gr.Blocks(analytics_enabled= False) as ui_component:
 
-		# Send to txt2img component
-		txt2img.component()
-
 		# Home tab
 		with gr.Tab('Home'):
 			with gr.Column():
-				main_menu.component(all_model_types())
-				download.component()
+				home_menu.component(all_model_types())
+				home_download.component()
 
-		# Extension tabs
+		# Model tabs
 		for type in all_model_types():
 			model_tab.component(type)
+
+		# Download manager
+		download_manager.component()
+		send_to_txt2img.component()
 
 	return [(ui_component, settings.EXTENSION_NAME, settings.EXTENSION_ID)]
 

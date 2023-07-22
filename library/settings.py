@@ -14,6 +14,8 @@ DEFAULT_DEBUG_MODE          = False
 DEFAULT_HIDE_NSFW_IMAGES    = True
 DEFAULT_CREATE_VAE_SYMLINKS = True
 DEFAULT_ALL_VERSIONS_IN_MD  = True
+DEFAULT_IMAGE_WIDTH_LIMIT   = True
+DEFAULT_AUTO_IMAGE_DOWNLOAD = True
 DEFAULT_REQUEST_DELAY       = 1.0
 
 class Settings(Enum):
@@ -24,6 +26,8 @@ class Settings(Enum):
 	HIDE_NSFW_IMAGES    = f'{EXTENSION_ID}_hide_nsfw_images'
 	CREATE_VAE_SYMLINKS = f'{EXTENSION_ID}_create_vae_symlinks'
 	ALL_VERSIONS_IN_MD  = f'{EXTENSION_ID}_all_versions_in_md'
+	IMAGE_WIDTH_LIMIT   = f'{EXTENSION_ID}_image_width_limit'
+	AUTO_IMAGE_DOWNLOAD = f'{EXTENSION_ID}_auto_image_download'
 	REQUEST_DELAY       = f'{EXTENSION_ID}_request_delay'
 
 	def get(self, default: Any) -> Any:
@@ -59,6 +63,14 @@ class Settings(Enum):
 		return cls.ALL_VERSIONS_IN_MD.get(DEFAULT_ALL_VERSIONS_IN_MD)
 
 	@classmethod
+	def image_width_limit(cls) -> bool:
+		return cls.IMAGE_WIDTH_LIMIT.get(DEFAULT_IMAGE_WIDTH_LIMIT)
+
+	@classmethod
+	def auto_image_download(cls) -> bool:
+		return cls.AUTO_IMAGE_DOWNLOAD.get(DEFAULT_AUTO_IMAGE_DOWNLOAD)
+
+	@classmethod
 	def request_delay(cls) -> float:
 		return cls.REQUEST_DELAY.get(DEFAULT_REQUEST_DELAY)
 
@@ -80,6 +92,14 @@ def on_ui_settings():
 	shared.opts.add_option(Settings.ALL_VERSIONS_IN_MD.value, shared.OptionInfo(DEFAULT_ALL_VERSIONS_IN_MD,
 			'Include all model versions in markdown info',
 		    gr.Checkbox, section= section))
+
+	shared.opts.add_option(Settings.IMAGE_WIDTH_LIMIT.value, shared.OptionInfo(DEFAULT_IMAGE_WIDTH_LIMIT,
+			'When downloading images, use default width limit (450px)',
+			gr.Checkbox, section= section))
+
+	shared.opts.add_option(Settings.AUTO_IMAGE_DOWNLOAD.value, shared.OptionInfo(DEFAULT_AUTO_IMAGE_DOWNLOAD,
+			'Automatically download included images when downloading models (Except for missing VAEs)',
+			gr.Checkbox, section= section))
 
 	shared.opts.add_option(Settings.REQUEST_DELAY.value, shared.OptionInfo(DEFAULT_REQUEST_DELAY,
 			'Civitai API request delay (seconds)',
