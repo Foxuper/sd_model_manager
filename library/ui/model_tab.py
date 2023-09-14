@@ -66,7 +66,7 @@ class Gallery:
 				self.html = gr.HTML(elem_classes= 'sd-mm-gallery-html')
 
 				# Gallery buttons
-				self.add = gr.Button('Add Image').style(full_width= False)
+				self.add = gr.Button('Add Image', scale= 0)
 
 class Markdown:
 	''' Markdown component for the model tab '''
@@ -82,7 +82,7 @@ class Markdown:
 				self.content = gr.Markdown()
 
 				# Markdown buttons
-				self.generate = gr.Button('Generate').style(full_width= False)
+				self.generate = gr.Button('Generate', scale= 0)
 
 class ModelNameEditor:
 	''' Model name editor component for the model tab '''
@@ -101,8 +101,8 @@ class ModelNameEditor:
 					self.input = gr.Textbox(show_label= False, interactive= True)
 
 					# Save and reset buttons
-					self.save  = gr.Button('Save').style(full_width= False)
-					self.reset = gr.Button('Default').style(full_width= False)
+					self.save  = gr.Button('Save', scale= 0)
+					self.reset = gr.Button('Default', scale= 0)
 
 class CivitaiActions:
 	''' Civitai actions component for the model tab '''

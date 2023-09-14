@@ -48,7 +48,7 @@ def create_image(model: local.Model, image_path: Path):
 		info: str = Image.open(image_path).info['parameters']
 
 		# Make info string safe for HTML
-		info = info.replace('"', '&quot;').replace("'", '&#39;')
+		info = info.replace('"', '&quot;').replace("'", "\\'")
 		info = info.replace('\r\n', '<br>').replace('\r', '<br>').replace('\n', '<br>')
 
 		# Send to PNG Info button

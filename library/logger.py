@@ -84,5 +84,9 @@ def configure():
 	stdout_handler.setFormatter(ConsoleFormatter(TERMINAL_FORMAT))
 	logger.addHandler(stdout_handler)
 
+	# Disable the propagation of logs to the parent logger
+	logger.propagate = False
+
+	# The logger is now initialized
 	LOGGER_INITIALIZED = True
 	return logger

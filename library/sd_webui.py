@@ -1,5 +1,7 @@
+import sys
 import importlib
 import importlib.util
+from enum import Enum
 from typing import Optional, Any, cast
 
 # SD Webui Modules
@@ -30,30 +32,38 @@ class extension:
 		def import_extension():
 			global BUILTIN_LORA_EXTENSION
 			try:
+				sys.path.append(str(paths.ROOT_DIR / 'extensions-builtin' / 'Lora'))
 				builtin_lora_extension = importlib.import_module('extensions-builtin.Lora.lora')
 				BUILTIN_LORA_EXTENSION = cast(extension.lora_builtin, builtin_lora_extension)
 				LOGGER.debug('Built-in Lora extension found')
 				return BUILTIN_LORA_EXTENSION
-			except:
+			except Exception as e:
 				LOGGER.warning('Built-in Lora extension not found')
+				LOGGER.warning(e)
 				return None
 
-		class LoraOnDisk:
+		class SdVersion(Enum):
+			Unknown = 1
+			SD1 = 2
+			SD2 = 3
+			SDXL = 4
+
+		class NetworkOnDisk:
 			name: str
 			filename: str
 			metadata: dict
 			is_safetensors: bool
-			ssmd_cover_images: Any
 			alias: str
 			hash: str
 			shorthash: str
+			sd_version: 'extension.lora_builtin.SdVersion'
 
-			def __init__(self, name, filename): ...
+			def detect_version(self) -> 'extension.lora_builtin.SdVersion': ...
 			def set_hash(self, v): ...
 			def read_hash(self): ...
-			def get_alias(self): ...
+			def get_alias(self) -> str: ...
 
-		available_loras: dict[str, LoraOnDisk]
+		available_loras: dict[str, NetworkOnDisk]
 
 		@staticmethod
 		def list_available_loras(): ...
@@ -165,12 +175,12 @@ class model:
 
 		elif type == civitai.Model.Type.LORA:
 			if BUILTIN_LORA_EXTENSION is None: return []
-			loras: dict[str, extension.lora_builtin.LoraOnDisk] = BUILTIN_LORA_EXTENSION.available_loras
+			loras = BUILTIN_LORA_EXTENSION.available_loras
 			filenames = [Filename(value.filename) for value in loras.values()]
 
 		elif type == civitai.Model.Type.LYCORIS:
 			if LYCORIS_EXTENSION is None: return []
-			lycos: dict[str, extension.lycoris.LycoOnDisk] = LYCORIS_EXTENSION.available_lycos
+			lycos = LYCORIS_EXTENSION.available_lycos
 			filenames = [Filename(value.filename) for value in lycos.values()]
 
 		elif type == civitai.Model.Type.VAE:

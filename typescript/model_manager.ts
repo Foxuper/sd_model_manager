@@ -202,8 +202,8 @@ function addSearchTriggerToDataframe(type: ResourceType)
 function addResourceToModelCards(type: ExtraTabs)
 {
 	// Get the model cards
-	const type_class = `${type.valueOf()}_extra_tabs`;
-	const model_cards = getElements(`#${type_class} .card .actions .additional`);
+	const type_id = `${type.valueOf()}_extra_tabs`;
+	const model_cards = getElements(`#${type_id} .card`);
 
 	// Iterate over the model cards
 	for (const card of model_cards)
@@ -212,22 +212,21 @@ function addResourceToModelCards(type: ExtraTabs)
 		if (card.getAttribute('action-added') == 'true') continue;
 		card.setAttribute('action-added', 'true');
 
-		// Get the card element and its parent
-		const card_div = card.parentElement.parentElement;
-		const parent_div = card_div.parentElement;
-		const actions_ul = card.querySelector('ul');
+		// Get the card parent and the card buttons
+		const card_parent = card.parentElement;
+		const card_buttons = card.querySelector('.button-row');
 
 		// Get the model name and type
-		const model_name = card_div.getAttribute('data-sort-name');
-		const model_type = resourceTypeFromId(parent_div.id).valueOf();
+		const model_name = card.getAttribute('data-sort-name');
+		const model_type = resourceTypeFromId(card_parent.id).valueOf();
 
-		// Override the replace preview button
+		// Create replace preview button
 		const replace_action = `onclick="sdmmReplacePreview(event, '${model_type}', '${model_name}')"`;
-		actions_ul.innerHTML = `<a href="#" title="Use generated image as preview" ${replace_action}></a>`;
+		card_buttons.innerHTML += `<div href="#" title="Use generated image as preview" class="card-button replace" ${replace_action}></div>`;
 
 		// Create the link to the resource page
 		const resource_action = `onclick="sdmmGoToResource(event, '${model_type}', '${model_name}')"`;
-		actions_ul.innerHTML += `<a href="#" title="Go to resource" class="resource" ${resource_action}></a>`;
+		card_buttons.innerHTML += `<div href="#" title="Go to resource" class="card-button resource" ${resource_action}></div>`;
 	}
 }
 
@@ -383,7 +382,7 @@ function build_info_html(info: string)
 	{
 		if (field_count > 0)
 		{
-			html += '    </div>\n';
+			html += '</div>\n';
 			field_count = 0;
 		}
 	}

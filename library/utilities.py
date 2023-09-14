@@ -249,17 +249,17 @@ def image_to_png(directory: Path, filename: Filename):
 	LOGGER.debug(f'Converting image "{image_file}" to PNG')
 
 	# Read metadata from original image and save it to PNG
-	image = Image.open(image_file)
+	with Image.open(image_file) as image:
+		try:
+			info = PngInfo()
+			exif = read_info_from_image(image)[0]
+			info.add_text('parameters', exif)
+			image.save(png_image_file, pnginfo= info)
 
-	# Attempt to read metadata from image and save it to PNG
-	try:
-		info = PngInfo()
-		exif = read_info_from_image(image)[0]
-		info.add_text('parameters', exif)
-		image.save(png_image_file, pnginfo= info)
-	except:
-		LOGGER.debug(f'Failed to read metadata from image "{filename.full}"')
-		image.save(png_image_file)
+		# Save image without metadata if it fails
+		except:
+			LOGGER.debug(f'Failed to read metadata from image "{filename.full}"')
+			image.save(png_image_file)
 
 	# Delete original image
 	image_file.unlink()

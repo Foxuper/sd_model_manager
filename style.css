@@ -1,81 +1,39 @@
-/* Thumbnail Mode | Resource icon on thumbnail previews */
-.extra-network-thumbs > .card ul a.resource
-{
-	right: 0;
-	left: unset;
-	background-image: url('./html/resource.svg');
-}
+/* Model Cards | Right padding for the card buttons */
+.extra-network-cards > .card > .button-row
+{ padding-right: 0.2em; }
 
-/* Thumbnail Mode | Flex row for the card actions */
-.extra-network-thumbs > .card .additional
-{
-	display: flex;
-	flex-direction: row;
-}
+/* Model Cards | Disable default card button icons */
+.extra-network-cards > .card > .button-row > .card-button:before
+{ content: none; }
 
-/* Thumbnail Mode | Center metadata button */
-.extra-network-thumbs > .card > .metadata-button
+/* Model Cards | General style for the card buttons */
+.extra-network-cards > .card > .button-row > .card-button
 {
-	top: 0;
-	left: 0;
-	line-height: 25px;
-	margin: auto;
-	width: fit-content;
-}
-
-/* Thumbnail Mode | Bigger and rectangular thumbnails */
-.extra-network-thumbs > .card
-{
-	width: 7em;
-	height: 10em;
-}
-
-/* Card Mode | Force display of the card actions */
-.extra-network-cards > .card .additional
-{ display: block !important; }
-
-/* Card Mode | Flex row for the card actions */
-.extra-network-cards .actions .additional ul
-{
-	gap: 0.5em;
-	display: flex;
-	flex-direction: row;
-}
-
-/* Card Mode | Use icons for the card actions */
-.extra-network-cards .actions .additional a
-{
-	background-image: url('./html/image-update.svg');
 	background-repeat: no-repeat;
 	background-position: center;
-	background-size: cover;
-	display: block;
-	width: 28px;
-	height: 28px;
+	margin-top: 0.3em;
+	height: 1.2em;
 }
 
-/* Card Mode | Resource icon on card previews */
-.extra-network-cards > .card ul a.resource
+/* Model Cards | Card button icons */
+.extra-network-cards > .card > .button-row > .card-button.replace
+{ background-image: url('./html/image-update.svg'); }
+.extra-network-cards > .card > .button-row > .card-button.resource
 { background-image: url('./html/resource.svg'); }
+.extra-network-cards > .card > .button-row > .card-button.metadata-button
+{ background-image: url('./html/info.svg'); }
+.extra-network-cards > .card > .button-row > .card-button.edit-button
+{ background-image: url('./html/settings.svg'); }
 
-/* Card Mode | Coloring of the card actions */
-.extra-network-cards > .card ul a:hover
-{ color: #FFE396; }
-
-/* Coloring of the replace preview icon on hover */
-.extra-network-thumbs > .card ul a:hover,
-.extra-network-cards .actions .additional a:hover
+/* Model Cards | Coloring of card buttons on hover */
+.extra-network-cards > .card > .button-row > .card-button.replace:hover
 { background-image: url('./html/hover/image-update.svg'); }
-
-/* Coloring of the resource icon on hover */
-.extra-network-thumbs > .card ul a.resource:hover,
-.extra-network-cards > .card ul a.resource:hover
+.extra-network-cards > .card > .button-row > .card-button.resource:hover
 { background-image: url('./html/hover/resource.svg'); }
-
-/* Coloring of the metadata button on hover */
-.extra-network-thumbs > .card > .metadata-button:hover,
-.extra-network-cards > .card > .metadata-button:hover
-{ color: #FFE396; }
+.extra-network-cards > .card > .button-row > .card-button.metadata-button:hover
+{ background-image: url('./html/hover/info.svg'); }
+.extra-network-cards > .card > .button-row > .card-button.edit-button:hover
+{ background-image: url('./html/hover/settings.svg'); }
 
 /* Gradio box with padding */
 .block.gradio-box.sd-mm-padded-box
@@ -142,6 +100,9 @@
 	display: flex;
 	position: absolute;
 	flex-direction: row;
+	padding: 0.2em;
+	border-radius: 0.3em;
+	background-color: #00000080;
 }
 
 /* Model image action */
